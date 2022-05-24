@@ -1,5 +1,7 @@
 import axios from 'axios';
 import { useEffect, useState } from 'react';
+import { Spinner } from './components/Spinner';
+import './select.css';
 
 interface Brand {
   codigo: string;
@@ -29,6 +31,8 @@ interface ValueData {
 }
 
 function App() {
+  // loading
+  const [isLoading, setIsLoading] = useState(false);
   // brand
   const [brands, setBrands] = useState<Brand[] | null>(null);
   const [selectedBrand, setSelectedBrand] = useState<string>('select');
@@ -43,18 +47,20 @@ function App() {
 
   useEffect(() => {
     const fetchBrands = async () => {
+      setIsLoading(true);
       try {
         const response = await axios.get('https://parallelum.com.br/fipe/api/v1/carros/marcas');        
         setBrands(response.data);
       } catch(err) {
        console.log('fetchBrands', err); 
-      }      
+      }
+      setIsLoading(false);
     };
 
     fetchBrands();
   }, []);
 
-  async function fetchCars(brandCode: string) {
+  async function fetchCars(brandCode: string) {    
     try {
       const response = await axios.get(`https://parallelum.com.br/fipe/api/v1/carros/marcas/${brandCode}/modelos`);
       const { modelos } = response.data;
@@ -73,7 +79,7 @@ function App() {
     }
   }
 
-  async function fetchValue(brandCode: string, carCode: string, yearCode: string) {
+  async function fetchValue(brandCode: string, carCode: string, yearCode: string) {    
     try {
       const response = await axios.get(`https://parallelum.com.br/fipe/api/v1/carros/marcas/${brandCode}/modelos/${carCode}/anos/${yearCode}`);            
       return response.data;
@@ -92,7 +98,8 @@ function App() {
 
     if(brandCode === 'select') return;
 
-    fetchCars(brandCode).then(modelos => setCars(modelos));    
+    setIsLoading(true);
+    fetchCars(brandCode).then(modelos => setCars(modelos)).finally(() => setIsLoading(false));
   }
 
   function handleCarChange(event: any) {
@@ -105,7 +112,8 @@ function App() {
 
     if(selectedBrand === 'select' || carCode === 'select') return;
 
-    fetchYears(selectedBrand, carCode).then(years => setYears(years));
+    setIsLoading(true);
+    fetchYears(selectedBrand, carCode).then(years => setYears(years)).finally(() => setIsLoading(false));
   }
 
   function handleYearChange(event: any) {
@@ -116,65 +124,68 @@ function App() {
 
     if(selectedBrand === 'select' || selectedCar === 'select' || yearCode === 'select') return;
 
-    fetchValue(selectedBrand, selectedCar, yearCode).then(value => setValueData(value));
+    setIsLoading(true);
+    fetchValue(selectedBrand, selectedCar, yearCode).then(value => setValueData(value)).finally(() => setIsLoading(false));
   }
 
   return (
-    <div style={{ display:'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
-      <label style={{ marginTop: 10 }}>Selecione a Marca:</label>
-
-      <select style={{ marginTop: 10 }} name="brands" id="brands" onChange={e => handleBrandChange(e)} value={selectedBrand}>
-        <option value="select">Select</option>
-        {
-          brands && (
-            brands.map(item => <option key={item.codigo} value={item.codigo}>{item.nome}</option>)
-          )
-        }
-      </select>
+    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+        <div className='box'>
+          <select name="brands" id="brands" onChange={e => handleBrandChange(e)} value={selectedBrand}>
+          <option value="select" disabled={true}>Marca</option>
+          {
+            brands && (
+              brands.map(item => <option key={item.codigo} value={item.codigo}>{item.nome}</option>)
+            )
+          }
+          </select>
+        </div>
 
       {
         selectedBrand !== 'select' && (
-          <>
-            <label style={{ marginTop: 10 }}>Selecione o Modelo:</label>
-            <select style={{ marginTop: 10 }} name="cars" id="cars" onChange={e => handleCarChange(e)} value={selectedCar}>
-            <option value="select">Select</option>
+          <div className='box'>
+            <select name="cars" id="cars" onChange={e => handleCarChange(e)} value={selectedCar}>
+            <option value="select" disabled={true}>Modelo</option>
             {
               cars && (
                 cars.map(item => <option key={item.codigo} value={item.codigo}>{item.nome}</option>)
               )
             }
             </select>
-          </>
+          </div>
         )
       }
 
       {
         selectedBrand !== 'select' && selectedCar !== 'select' && (
-          <>
-            <label style={{ marginTop: 10 }}>Selecione o Ano:</label>
-            <select style={{ marginTop: 10 }} name="years" id="years" onChange={e => handleYearChange(e)} value={selectedYear}>
-            <option value="select">Select</option>
+          <div className='box'>            
+            <select name="years" id="years" onChange={e => handleYearChange(e)} value={selectedYear}>
+            <option value="select" disabled={true}>Ano</option>
             {
               years && (
                 years.map(item => <option key={item.codigo} value={item.codigo}>{item.nome}</option>)
               )
             }
             </select>
-          </>
+          </div>
         )
       }
 
       {
-        selectedBrand !== 'select' && selectedCar !== 'select' && selectedYear !== 'select' && valueData && (
-          <div style={{ marginTop: 40 }}>            
-            <span style={{ fontSize: 32 }}>
-            {valueData.Valor}
-            </span>
-            <footer>
-              Referência: {valueData.MesReferencia}
-            </footer>
-          </div>
-        )
+        isLoading ? (
+          <Spinner />
+        ) : (
+          selectedBrand !== 'select' && selectedCar !== 'select' && selectedYear !== 'select' && valueData && (
+            <div style={{ marginTop: 40 }}>            
+              <span style={{ fontSize: 32, color: 'white' }}>
+              {valueData.Valor}
+              </span>
+              <footer style={{ color: 'gray' }}>
+                Referência: {valueData.MesReferencia}
+              </footer>
+            </div>
+          ) 
+        )        
       }
     </div>
   )
