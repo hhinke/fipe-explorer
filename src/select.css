@@ -10,9 +10,11 @@
     appearance: button;
     outline: none;
     margin-top: 15px;
-    width: 320px;
+    width: 350px;
 }
 
 .box select option {
     padding: 30px;
+    border: none;
+    background-color: #333333;
 }
